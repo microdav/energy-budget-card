@@ -6,7 +6,7 @@
  * cost statistics: no helper, template or automation needed.
  */
 
-const CARD_VERSION = "1.1.0";
+const CARD_VERSION = "1.2.0";
 const CARD_TYPE = "energy-budget-card";
 const REFRESH_MS = 10 * 60 * 1000;
 const SHOW_KEYS = ["gauge", "summary", "table", "average", "settlement", "remaining"];
@@ -475,6 +475,10 @@ const CSS = `
   .gauge .hub { fill: var(--primary-text-color); }
   .gauge .value { font-size: 28px; font-weight: 500; margin-top: 4px; font-variant-numeric: tabular-nums; }
   .gauge .label { font-size: 14px; color: var(--secondary-text-color); }
+  .gauge.native ha-gauge { width: 100%; max-width: 250px; }
+  .gauge.native .title { width: 100%; margin: 0; text-align: center; font-size: var(--ha-font-size-m, 14px); line-height: var(--ha-line-height-expanded, 2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  ha-card.compact { padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  ha-card.compact .content { padding: 0; width: 100%; }
   .rows { margin-top: 8px; }
   .row { display: flex; align-items: center; gap: 16px; min-height: 40px; }
   .row ha-icon { color: var(--state-icon-color, var(--paper-item-icon-color, #44739e)); flex: none; }
@@ -505,9 +509,17 @@ function render(hass, cfg, md) {
   if (cfg.show.gauge && md.drift !== null) {
     // gauge_name: "" hides the label, e.g. in a narrow column.
     const label = cfg.gauge_name ?? t(hass, "gauge");
-    out.push(`<div class="block gauge" title="${esc(t(hass, "gauge_hint"))}">${gaugeSvg(md.drift, cfg.gauge_range)}
-      <div class="value ${md.drift > 0 ? "bad" : "good"}">${pct(hass, md.drift, 1)}</div>
-      ${label ? `<div class="label">${esc(label)}</div>` : ""}</div>`);
+    const hint = esc(t(hass, "gauge_hint"));
+    if (customElements.get("ha-gauge")) {
+      // Home Assistant's own gauge (configured in _render): same look and size as the built-in gauge card.
+      out.push(`<div class="block gauge native" title="${hint}"><ha-gauge></ha-gauge>${
+        label ? `<p class="title">${esc(label)}</p>` : ""
+      }</div>`);
+    } else {
+      out.push(`<div class="block gauge" title="${hint}">${gaugeSvg(md.drift, cfg.gauge_range)}
+        <div class="value ${md.drift > 0 ? "bad" : "good"}">${pct(hass, md.drift, 1)}</div>
+        ${label ? `<div class="label">${esc(label)}</div>` : ""}</div>`);
+    }
   }
 
   if (cfg.show.summary) {
@@ -699,14 +711,49 @@ class EnergyBudgetCard extends HTMLElement {
     if (!this._config) return;
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     const hass = this._hass;
-    const title = this._config.title ?? t(hass, "title");
+    const cfg = this._config;
+    const title = cfg.title ?? t(hass, "title");
+    // Gauge alone without a title: laid out like the built-in gauge card so both line up side by side.
+    const compact = !title && cfg.show.gauge && SHOW_KEYS.every((k) => k === "gauge" || !cfg.show[k]);
     let body;
+    let md = null;
     if (this._error) body = `<div class="msg warn">${esc(this._error)}</div>`;
     else if (!hass || !this._monthly) body = `<div class="msg">${esc(t(hass, "loading"))}</div>`;
-    else body = render(hass, this._config, computeModel(hass, this._config, this._monthly));
-    this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card>${
+    else {
+      md = computeModel(hass, cfg, this._monthly);
+      body = render(hass, cfg, md);
+    }
+    this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card class="${compact ? "compact" : ""}">${
       title ? `<div class="card-header">${esc(title)}</div>` : ""
     }<div class="content">${body}</div></ha-card>`;
+
+    const gauge = this.shadowRoot.querySelector("ha-gauge");
+    if (gauge && md) {
+      const r = cfg.gauge_range;
+      Object.assign(gauge, {
+        min: -r,
+        max: r,
+        value: Math.round(md.drift * 10) / 10,
+        label: "%",
+        needle: true,
+        levels: [
+          { level: -r, stroke: "var(--success-color)" },
+          { level: 0, stroke: "var(--error-color)" },
+        ],
+        locale: hass.locale,
+        formatOptions: { maximumFractionDigits: 1 },
+      });
+    } else if (cfg.show.gauge && !customElements.get("ha-gauge") && !EnergyBudgetCard._gaugeRequested) {
+      // ha-gauge is lazy-loaded with the built-in gauge card: build one once to load it, then re-render.
+      EnergyBudgetCard._gaugeRequested = true;
+      window
+        .loadCardHelpers?.()
+        .then((h) => h.createCardElement({ type: "gauge", entity: "sun.sun" }))
+        .catch(() => {});
+    }
+    if (cfg.show.gauge && !customElements.get("ha-gauge")) {
+      customElements.whenDefined("ha-gauge").then(() => this._render());
+    }
   }
 }
 
