@@ -6,7 +6,7 @@
  * cost statistics: no helper, template or automation needed.
  */
 
-const CARD_VERSION = "1.0.0";
+const CARD_VERSION = "1.1.0";
 const CARD_TYPE = "energy-budget-card";
 const REFRESH_MS = 10 * 60 * 1000;
 const SHOW_KEYS = ["gauge", "summary", "table", "average", "settlement", "remaining"];
@@ -18,7 +18,8 @@ const STRINGS = {
     no_source:
       "No cost statistic found. Set a price on your grid sources in the Energy dashboard, or list cost statistics in cost_statistics.",
     ws_error: "Unable to read statistics: {error}",
-    gauge: "Month drift (incl. subscription)",
+    gauge: "Month drift",
+    gauge_hint: "Month-end estimate vs. month budget, subscription included",
     spent: "Spent this month",
     estimate: "Month-end estimate",
     target: "Month budget",
@@ -75,6 +76,7 @@ const STRINGS = {
     e_decimals: "Decimals",
     e_threshold_pct: "Colour threshold (%)",
     e_gauge_range: "Gauge range (± %)",
+    e_gauge_name: "Gauge label",
     e_source: "Cost source",
     e_cost_statistics: "Cost statistics (empty = Energy dashboard)",
     e_entity_kept: "Read from {entity} — typing a value replaces it",
@@ -92,7 +94,8 @@ const STRINGS = {
     no_source:
       "Aucune statistique de coût trouvée. Renseigne un prix sur tes sources réseau dans le tableau de bord Énergie, ou liste des statistiques de coût dans cost_statistics.",
     ws_error: "Lecture des statistiques impossible : {error}",
-    gauge: "Dérive du mois (abonnement inclus)",
+    gauge: "Dérive du mois",
+    gauge_hint: "Estimation de fin de mois face au budget du mois, abonnement inclus",
     spent: "Dépensé ce mois",
     estimate: "Estimé fin de mois",
     target: "Budget du mois",
@@ -148,6 +151,7 @@ const STRINGS = {
     e_decimals: "Décimales",
     e_threshold_pct: "Seuil de couleur (%)",
     e_gauge_range: "Amplitude de la jauge (± %)",
+    e_gauge_name: "Libellé de la jauge",
     e_source: "Source des coûts",
     e_cost_statistics: "Statistiques de coût (vide = tableau de bord Énergie)",
     e_entity_kept: "Lu dans {entity} — saisir une valeur le remplace",
@@ -499,9 +503,11 @@ function render(hass, cfg, md) {
   const out = [];
 
   if (cfg.show.gauge && md.drift !== null) {
-    out.push(`<div class="block gauge">${gaugeSvg(md.drift, cfg.gauge_range)}
+    // gauge_name: "" hides the label, e.g. in a narrow column.
+    const label = cfg.gauge_name ?? t(hass, "gauge");
+    out.push(`<div class="block gauge" title="${esc(t(hass, "gauge_hint"))}">${gaugeSvg(md.drift, cfg.gauge_range)}
       <div class="value ${md.drift > 0 ? "bad" : "good"}">${pct(hass, md.drift, 1)}</div>
-      <div class="label">${esc(t(hass, "gauge"))}</div></div>`);
+      ${label ? `<div class="label">${esc(label)}</div>` : ""}</div>`);
   }
 
   if (cfg.show.summary) {
@@ -735,6 +741,7 @@ function toForm(c) {
     decimals: c.decimals ?? 0,
     threshold_pct: c.threshold_pct ?? 10,
     gauge_range: c.gauge_range ?? 50,
+    gauge_name: c.gauge_name,
     cost_statistics: c.cost_statistics || [],
   };
 }
@@ -776,6 +783,9 @@ function fromForm(f, orig) {
   if (f.decimals !== undefined && f.decimals !== 0) out.decimals = f.decimals;
   if (f.threshold_pct !== undefined && f.threshold_pct !== 10) out.threshold_pct = f.threshold_pct;
   if (f.gauge_range !== undefined && f.gauge_range !== 50) out.gauge_range = f.gauge_range;
+  // An empty field cannot be told apart from "unset" in the form: "" (hidden label) is kept from YAML.
+  if (f.gauge_name) out.gauge_name = f.gauge_name;
+  else if (orig.gauge_name === "") out.gauge_name = "";
   if (f.cost_statistics?.length) out.cost_statistics = f.cost_statistics;
 
   // Options only reachable from YAML are carried over untouched.
@@ -865,6 +875,7 @@ class EnergyBudgetCardEditor extends HTMLElement {
             { name: "decimals", selector: { number: { min: 0, max: 2, mode: "box" } } },
             { name: "threshold_pct", selector: { number: { min: 0, max: 100, mode: "box", unit_of_measurement: "%" } } },
             { name: "gauge_range", selector: { number: { min: 5, max: 200, mode: "box", unit_of_measurement: "%" } } },
+            { name: "gauge_name", selector: { text: {} } },
           ]),
         ],
       },

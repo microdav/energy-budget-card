@@ -95,6 +95,7 @@ payments:
 | `decimals` | `0` | Decimals for amounts |
 | `threshold_pct` | `10` | Variance (%) from which a month is coloured |
 | `gauge_range` | `50` | Gauge range (± %) |
+| `gauge_name` | localized | Label under the gauge (`""` hides it) |
 | `cost_statistics` | Energy dashboard | Your own list of cost statistics, used instead of the Energy dashboard |
 | `exclude_statistics` | – | Energy dashboard cost statistics to ignore |
 | `include_compensation` | `true` | Subtract grid export compensation |
