@@ -6,7 +6,7 @@
  * cost statistics: no helper, template or automation needed.
  */
 
-const CARD_VERSION = "1.2.0";
+const CARD_VERSION = "1.2.1";
 const CARD_TYPE = "energy-budget-card";
 const REFRESH_MS = 10 * 60 * 1000;
 const SHOW_KEYS = ["gauge", "summary", "table", "average", "settlement", "remaining"];
