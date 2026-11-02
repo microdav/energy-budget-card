@@ -1,6 +1,6 @@
 # Energy Budget Card
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://hacs.xyz)
 [![Validate](https://github.com/microdav/energy-budget-card/actions/workflows/validate.yml/badge.svg)](https://github.com/microdav/energy-budget-card/actions/workflows/validate.yml)
 
 A Home Assistant card to follow your electricity spending against a monthly budget, and, if you pay fixed monthly instalments, to see the year-end settlement coming.
@@ -8,8 +8,8 @@ A Home Assistant card to follow your electricity spending against a monthly budg
 *[Version française plus bas](#en-français).*
 
 <p>
-  <img src="docs/screenshot-top.png" alt="Drift gauge, current month and monthly table" width="380">
-  <img src="docs/screenshot-bottom.png" alt="Monthly average, settlement and still spendable" width="380">
+  <img src="https://raw.githubusercontent.com/microdav/energy-budget-card/main/docs/screenshot-top.png" alt="Drift gauge, current month and monthly table" width="380">
+  <img src="https://raw.githubusercontent.com/microdav/energy-budget-card/main/docs/screenshot-bottom.png" alt="Monthly average, settlement and still spendable" width="380">
 </p>
 
 ## Why
@@ -41,8 +41,10 @@ All blocks can be turned on or off.
 
 ### HACS
 
-1. HACS → ⋮ → *Custom repositories* → add `https://github.com/microdav/energy-budget-card`, category **Dashboard**.
-2. Install **Energy Budget Card**, then reload the browser.
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=microdav&repository=energy-budget-card&category=plugin)
+
+1. In HACS, search for **Energy Budget Card** (or use the button above).
+2. Install it, then reload the browser.
 
 ### Manual
 
